@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/tenants/124"
+  },
+  "response": {
+    "status": 404,
+    "body": "{\"message\": \"No Such Tenant Id\"}",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/tenants/123"
+  },
+  "response": {
+    "status": 200,
+    "body": "{\"name\": \"Tenant123\"}",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

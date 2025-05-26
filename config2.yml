@@ -1,0 +1,4 @@
+api:
+  auth:
+    username: ${USERNAME}
+    password: ${PASSWORD}
