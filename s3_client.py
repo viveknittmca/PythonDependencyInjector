@@ -196,7 +196,7 @@ def print_metric(metric_name: str):
 
 # if __name__ == '__main__':
 #     try:
-#         s3_client = S3Client("","")
+#         s3_client = S3Client()
 #         # print(s3_client.file_exists('vivekrajendran', 'test.txt'))
 #         print(s3_client.delete_file('vivekrajendran', 'test/1/requirements.txt'))
 #
