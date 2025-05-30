@@ -1,5 +1,7 @@
 import logging
 import time
+
+import sqlalchemy
 from sqlalchemy import create_engine, MetaData, Table, select, insert, update, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,7 +10,7 @@ from prometheus_client import Counter, Histogram
 from typing import Optional, Dict, Union, Any, Callable, List
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Prometheus metrics
@@ -52,26 +54,38 @@ class RelationalDbClient:
         return result.rowcount
 
     @staticmethod
-    def _get_table_names_from_stmt(stmt) -> str:
+    def _get_table_names_from_stmt(statement) -> str:
+        def extract_names(from_obj):
+            if hasattr(from_obj, 'name') and isinstance(from_obj.name, str):
+                return [from_obj.name]
+            elif isinstance(from_obj, sqlalchemy.sql.selectable.Join):
+                left = extract_names(from_obj.left)
+                right = extract_names(from_obj.right)
+                return left + right
+            return []
+
         try:
-            tables = [f.name for f in stmt.get_final_froms() if hasattr(f, 'name')]
-            return '|'.join(sorted(set(tables)))
-        except Exception:
+            tables = []
+            for f in statement.get_final_froms():
+                tables.extend(extract_names(f))
+            return tables
+        except RuntimeError:
             return "unknown"
 
-    def execute(self, stmt, table: str, operation: str = "query"):
-        result = self._execute(stmt, table, operation)
+    def execute(self, statement, table: Union[str, List[str]] = None, operation: str = "query"):
+        result = self._execute(statement, table, operation)
         return self._extract_rows(result)
 
-    def _execute(self, stmt, tables: Union[str, List[str]] = None, operation: str = "query") -> Any:
+    def _execute(self, statement, tables: Union[str, List[str]] = None, operation: str = "query") -> Any:
         # tables = '|'.join(sorted(tables)) if isinstance(tables, List) else tables
-        tables = self._get_table_names_from_stmt(stmt) if tables is None else (
-            '|'.join(sorted(tables)) if isinstance(tables, list) else tables
-        )
+        tables = self._get_table_names_from_stmt(statement) if tables is None else tables
+        tables = '|'.join(sorted(set(tables))) if isinstance(tables, list) else tables
+
+        logger.info(f"{tables=}")
         start = time.perf_counter()
         try:
             with self.engine.begin() as conn:
-                result = conn.execute(stmt)
+                result = conn.execute(statement)
                 return result
         except SQLAlchemyError as e:
             DB_QUERY_ERRORS.labels(operation, tables, type(e).__name__).inc()
@@ -86,9 +100,9 @@ class RelationalDbClient:
     def fetch_one(self, table_name: str, where: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         table = self.meta.tables[table_name]
         conditions = and_(*[table.c[k] == v for k, v in where.items()])
-        stmt = select(table).where(conditions).limit(1)
-        result = self._execute(stmt, table_name, "fetch_one")
-        return self._extract_rows(result)
+        statement = select(table).where(conditions).limit(1)
+        result = self._execute(statement, table_name, "fetch_one")
+        return self._extract_rows(result)[0]
 
     def fetch_all(self, table_name: str, where: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         table = self.meta.tables[table_name]
@@ -207,9 +221,12 @@ class RelationalDbClient:
 
 
 if __name__ == '__main__':
-    db = RelationalDbClient(db_url="postgresql+psycopg2://postgres:Grespass@localhost/cq")
+    # db = RelationalDbClient(db_url="postgresql+psycopg2://postgres:@localhost/cq")
+    db = RelationalDbClient(db_url="postgresql://postgres:@localhost/cq")
     print(db.health_check())
     entity = db.meta.tables["entity"]
+    employee = db.meta.tables["employee"]
+    department = db.meta.tables["department"]
     stmt = (
         select(
             entity.c.id,
@@ -218,13 +235,36 @@ if __name__ == '__main__':
             entity.c.id == 2,
             entity.c.name == 'Workforce'
         ))
-
     )
     print(db.execute(stmt, "entity"))
+
+    from sqlalchemy import select, join
+    employee_entity_join = join(employee, entity, employee.c.entity_id == entity.c.id)
+
+    stmt = (
+        select(
+            employee.c.id.label("employee_id"),
+            employee.c.name.label("employee_name"),
+            entity.c.name.label("entity_name"),
+        )
+        .select_from(employee_entity_join)
+    )
+    print(db.execute(stmt, ["x","y", "x", "y"]))
+
+    stmt = select(
+        employee.c.id.label("employee_id"),
+        entity.c.name.label("entity_name"),
+        department.c.name.label("department_name"),
+    ).select_from(
+        employee
+        .join(entity, employee.c.entity_id == entity.c.id)
+        .join(department, employee.c.department_id == department.c.id)
+    )
+    print(db.execute(stmt))
     #
     # print(db.fetch_all("entity"))
     # print(db.fetch_one("entity", {'id': 2}))
-    print(db.insert("entity", {'id': 4, 'name': '3rd Party'}))
+    # print(db.insert("entity", {'id': 4, 'name': '3rd Party'}))
 
 # class ReportingDbClient:
 #     def __init__(self, db: RelationalDbClient):
