@@ -194,29 +194,29 @@ def print_metric(metric_name: str):
                 print(f"{sample.name} {sample.labels} = {sample.value}")
 
 
-if __name__ == '__main__':
-    try:
-        s3_client = S3Client("","")
-        # print(s3_client.file_exists('vivekrajendran', 'test.txt'))
-        print(s3_client.delete_file('vivekrajendran', 'test/1/requirements.txt'))
-
-        # print(s3_client.upload_file('vivekrajendran', 'test/1/requirements.txt', Path('/Users/vivek/Github'
-        #                                                                               '/PythonDependencyInjector'
-        #                                                                               '/requirements1.txt')))
-        # for i in range(5):
-        #     try:
-        #         s3_client.download_file(bucket="vivekrajendran", key="test.txt")
-        #     except Exception as e:
-        #         print(f"Attempt {i + 1}: {type(e).__name__} - {e}")
-        # with open("downloaded_requirements.txt", "wb") as w:
-        #     w.write(s3_client.download_file('vivekrajendran', 'test/1/requirements1.txt'))
-    finally:
-        # for metric in REGISTRY.collect():
-        #     print(metric)
-        print_metric("s3_success_op_duration_seconds")
-        print_metric("s3_failure_op_duration_seconds")
-        print_metric("s3_errors")
-        print_metric("s3_circuit_state")
+# if __name__ == '__main__':
+#     try:
+#         s3_client = S3Client("","")
+#         # print(s3_client.file_exists('vivekrajendran', 'test.txt'))
+#         print(s3_client.delete_file('vivekrajendran', 'test/1/requirements.txt'))
+#
+#         # print(s3_client.upload_file('vivekrajendran', 'test/1/requirements.txt', Path('/Users/vivek/Github'
+#         #                                                                               '/PythonDependencyInjector'
+#         #                                                                               '/requirements1.txt')))
+#         # for i in range(5):
+#         #     try:
+#         #         s3_client.download_file(bucket="vivekrajendran", key="test.txt")
+#         #     except Exception as e:
+#         #         print(f"Attempt {i + 1}: {type(e).__name__} - {e}")
+#         # with open("downloaded_requirements.txt", "wb") as w:
+#         #     w.write(s3_client.download_file('vivekrajendran', 'test/1/requirements1.txt'))
+#     finally:
+#         # for metric in REGISTRY.collect():
+#         #     print(metric)
+#         print_metric("s3_success_op_duration_seconds")
+#         print_metric("s3_failure_op_duration_seconds")
+#         print_metric("s3_errors")
+#         print_metric("s3_circuit_state")
 
 
 # class S3RegionClientFactory:
